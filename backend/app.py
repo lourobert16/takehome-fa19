@@ -53,6 +53,8 @@ def mirror(name):
 
 @app.route("/contacts", methods=['GET'])
 def get_all_contacts():
+    if request.args.get('hobby') != None:
+        return get_contact_by_hobby()
     return create_response({"contacts": db.get('contacts')})
 
 @app.route("/shows/<id>", methods=['DELETE'])
@@ -64,6 +66,41 @@ def delete_show(id):
 
 
 # TODO: Implement the rest of the API here!
+@app.route("/contacts/<id>", methods=['GET'])
+def get_contact_by_id(id):
+    if db.getById('contacts', int(id)) is None:
+        return create_response(status=404, message="No contact with this id exists")
+    return create_response(db.getById('contacts', int(id)))
+
+@app.route("/contacts", methods=['GET'])
+def get_contact_by_hobby():
+    hobby = request.args.get('hobby')
+    for i in db.get('contacts'):
+        if i["hobby"] == hobby:
+            return create_response({"contacts": [db.getById('contacts', int(i["id"]))]})
+    return create_response(status=404, message="No contact with this hobby exists") 
+
+@app.route("/contacts", methods=['POST'])
+def create_new_contact():
+    body = request.get_json()
+    if 'name' not in body or 'nickname' not in body or 'hobby' not in body:
+        return create_response(status=422, message="Missing parameters: must provide name, nickname, and hobby") 
+    new_contact = db.create('contacts', body)
+    return create_response(new_contact, status = 201)
+
+@app.route("/contacts/<id>", methods=['PUT'])
+def update_contact(id):
+    updated_contact = db.getById('contacts', int(id))
+    if updated_contact is None:
+        return create_response(status=404, message="No contact with this id exists")
+    body = request.get_json()
+    if 'name' in body:
+        new_name = body["name"]
+        updated_contact = db.updateById('contacts', int(id), {"name": new_name})
+    if 'hobby' in body:
+        new_hobby = body["hobby"]
+        updated_contact = db.updateById('contacts', int(id), {"hobby": new_hobby})
+    return create_response(updated_contact)
 
 """
 ~~~~~~~~~~~~ END API ~~~~~~~~~~~~
